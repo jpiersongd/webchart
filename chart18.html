@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<!-- 
+    Written by Jim Pierson with lots of help from ChatGPT 
+    https://www.linkedin.com/in/jimpierson/
+    Oct 31 2023 
+-->
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Plotter</title>
+
+    <!-- Call the libraries early since they take 100-200ms to download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/jquery.knob/1.2.13/jquery.knob.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+ 
+    
+    <!-- Adding the style section here -->
+    <style>
+        #myTable {
+            border: 8px solid rgb(103, 105, 121);
+            border-radius: 15px;
+            overflow: hidden;
+            width: 710px;
+        }
+
+        #myTable td, #myTable th {
+            border: 1px solid black;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .knob-container {
+            position: relative;
+            display: inline-flex; /* changed to inline-flex */
+            flex-direction: column; /* stack children vertically */
+            justify-content: center; /* center children vertically */
+            align-items: center; /* center children horizontally */
+            border: 2px solid #666;
+            border-radius: 15px; /* Rounded corners */
+            padding: 5px;
+            margin: 0px;
+            text-align: center;
+            width: 120px;
+            height: 150px;
+            margin-bottom: 0px;
+        }
+
+        .knob-label {
+            display: block;
+            margin-top: 0px;
+        }
+
+        .knob {
+            margin: 0 auto;
+            display: block;
+            width: 120px;
+            height: 10px;
+            font-size: 100px;
+        }
+
+        #titleContainer {
+            width: 100%; 
+            height: 40px;
+            margin-bottom: 0px;
+            text-align: center;
+            font-size: x-large;
+        }
+
+        #chartContainer {
+            width: 682px; 
+            height: 350px;
+            margin: 0px;
+            font-size: x-large;
+            border: 2px solid #666;
+            border-radius: 15px; /* Rounded corners */
+        }
+
+        #updateButton {
+            border: 4px solid #666;
+            border-radius: 15px; /* Rounded corners */
+            margin: 10px;   
+        }
+
+        .canvas#chartCanvas {
+            margin: 10px;
+        }
+
+        #dropdownContainer {
+            width: 100%; 
+            height: 40px;
+            margin-bottom: 0px;
+            text-align:left;
+            padding-left: 20px;  
+        }
+ 
+        #TextContainer {
+            width: 100%; 
+            margin-bottom: 0px;
+            text-align:left;
+            padding-left: 20px;  
+        }
+
+        #switchContainer {
+            width: 100%; 
+            margin-bottom: 0px;
+            text-align:left;
+            padding-left: 20px;  
+        }
+
+        #updateButton.clicked {
+        background-color: #28a745; 
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <table id="myTable">
+        <tr id="titleContainer">
+            <td colspan="3">
+                <div>
+                    Math Plotter
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <!-- Chart Container -->
+                <div id="chartContainer">
+                    <canvas id="chartCanvas"></canvas>
+                </div>
+            </td>
+        </tr>
+        <tr >
+            <td>
+                <!-- Knob for X range -->
+                <div class="knob-container">
+                    <input class="knob" data-width="100" data-height="100" data-angleOffset="-90" data-thickness="0.2" data-lineCap="round" data-fgColor="#191970" data-min="1" data-max="10000" data-step="1" value="100">
+                    <span class="knob-label">Horizontal <br>X range</span>
+                </div>
+
+                <!-- Knob for Y range -->
+                <div class="knob-container">
+                    <input class="knob" data-width="100" data-height="100" data-angleOffset="90" data-thickness="0.2" data-lineCap="round" data-fgColor="#191970" data-min="1" data-max="10000" data-step="1" value="100">
+                    <span class="knob-label">Vertical <br>Y range</span>
+                </div>
+
+                <!-- Knob for A -->
+                <div class="knob-container">
+                    <input class="knob" data-width="100" data-height="100" data-angleOffset="90" data-thickness="0.2" data-lineCap="round" data-fgColor="#191970" data-min="-100" data-max="1000" data-step=".1" value="1">
+                    <span class="knob-label">A<br>var</span>
+                </div>
+
+                <!-- Knob for B -->
+                <div class="knob-container">
+                <input class="knob" data-width="100" data-height="100" data-angleOffset="90" data-thickness="0.2" data-lineCap="round" data-fgColor="#191970" data-min="-100" data-max="1000" data-step=".1" value="1">
+                <span class="knob-label">B<br>var</span>
+                 </div>
+
+                <!-- Knob for C -->
+                <div class="knob-container">
+                    <input class="knob" data-width="100" data-height="100" data-angleOffset="90" data-thickness="0.2" data-lineCap="round" data-fgColor="#191970" data-min="-100" data-max="1000" data-step=".1" value="1">
+                    <span class="knob-label">C<br>var</span>
+                     </div>
+            </td>
+        </tr>
+        <tr id="dropdownContainer">
+            <td id="dropdownContainer" colspan="3">  
+                <!-- Dropdown and Textbox -->
+                <select id="formulaDropdown">
+                    <option value="Math.cos(x/A)" data-desc="simple  example" data-optx="1000" data-opty="2" data-A="32" selected>Cos Wave</option> 
+                    <option value="x+A" data-desc="simple example" data-optx="100" data-opty="1000" data-A="100">Add</option>
+                    <option value="x*A" data-desc="simple example" data-optx="100" data-opty="1000" data-A="10">Multiply</option>
+                    <option value="(x/10) % 2 < 1 ? 1 : -1" data-desc=" If x/10 modulo 2 is less than 1, then return 1 else -1. Modulo means divide by and keep only the decimal remainder" data-optx="100" data-opty="4">Square Wave</option>
+                    <option value="4 * Math.abs((x/A) - Math.floor(x/A) - 0.5) - 1" data-desc="simple example: " data-optx="100" data-opty="4" data-A="10">Triangle Wave</option>
+                    <option value="A * (x/B - Math.floor(x/B))-A/2" data-desc="simple example: a*(x/b - Math.floor(x/c)) -d  a= height, b= steps down, c= steps up, d=zerocenterline" data-optx="1000" data-opty="2" data-A="2" data-B="60">SawtoothWave</option> 
+                    <option value="Math.sin(x/A)" data-desc="simple example" data-optx="1000" data-opty="2" data-A="32">Sin Wave</option>
+                    <option value="A*Math.sin(x*B)-C" data-desc="example a=amplitude b=frequency c= phase" data-optx="100" data-opty="2" data-A="1" data-B="100" data-C="0">Sin Wave 2</option>
+                    <option value="Math.sin(x)*Math.sin(x)*10-5" data-desc="two waves together appearing like a helix. Zoom in to see best." data-optx="300" data-opty="10">Two Sin Waves</option>
+                    <option value="Math.sin(x/A)*Math.sin(x/B)*Math.sin(x)*C" data-desc="several waves together, fantastic! Spooky!" data-optx="1000" data-opty="1000" data-A="144" data-B="100" data-C="1000">Multiple Sin Waves</option>
+                    <option value="Math.sin(x/10)*x" data-desc="a stead ramp up in volume" data-optx="1000" data-opty="1000">Amplitude-Modulated Spiral</option>
+                    <option value="Math.exp(.1 * x) * Math.sin(x)" data-desc="simple  example" data-optx="100" data-opty="1000">DampedSineWave</option>   
+                    <option value="Math.tan(x)" data-desc="an odd example" data-optx="1000" data-opty="100">Math.tan</option>   
+                    <option value="x*x" data-desc="simple  example" data-optx="100" data-opty="1000">Parabola</option>
+                    <option value="A*x*x+B*x+C" data-desc="y=ax^2+bx+c, a is curvature, b is tilt, c is y-intercept" data-optx="100" data-opty="1000" data-A="-3" data-B="100" data-C="100">CannonBall Parabola</option>
+                    <option value="Math.sin(x/2000*x)*100" data-desc="Isaac's Speeding up Sinewave example" data-optx="1000" data-opty="160">Speeding Up Sinewave</option>
+                    <option value="(x/10) % 2 < 1 ? x : -x" data-desc="Isaac's Crocadile square wave example" data-optx="150" data-opty="200">Crocadile Up Sinewave</option>
+                    <option value="Math.sin(x/10*100+Math.cos(x/10)*100)*100" data-desc="Isaac's Bamboo forest example" data-optx="1000" data-opty="17">Bamboo Forest</option>
+
+                <!-- Add more options/formulas as desired -->
+   
+                </select>
+                <input  id="functionInput" type="text" value="Math.cos(x/A)" size="40">
+                <button id="updateButton" >Update Chart</button>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <div id="TextContainer">
+                    <p id="formulaDescription">Select a formula to see its description and chart.</p>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td id='switchContainer' colspan="3">
+                <!-- On/Off Toggle for Sound -->
+                <div class="Sound-Toggle-container">
+                    <form>
+                        Sound
+                        <input type="radio" id="soundOn" name="sound" value="on" checked>
+                        <label for="soundOn">On</label>
+                    
+                        <input type="radio" id="soundOff" name="sound" value="off">
+                        <label for="soundOff">Off</label>
+
+                        <input type="range" id="volumeSlider" min="0" max="1" step=".1" value="0.25">
+                        <label for="volumeSlider" id="currentVolume">Volume: 0.25</label>
+                    </form>
+                </div>
+            </td>
+
+        </tr>
+    </table>
+
+      
+
+
+
+    <script>
+        // Get a reference to the button element
+        const updateButton = document.getElementById('updateButton');
+
+        // Change the button color and trigger the update action
+        function handleUpdateButtonClick() {
+            // Toggle the "clicked" class to change the button color
+            updateButton.classList.toggle('clicked');
+            updateChart();
+            // After a short delay, remove the "clicked" class to revert the color
+            setTimeout(() => {
+                updateButton.classList.remove('clicked');
+            }, duration * 1000); // Adjust the delay as needed
+        }
+
+        // Attach the click event listener to the button
+        updateButton.addEventListener('click', handleUpdateButtonClick);
+
+
+        // Add an event listener to the document to listen for the "keydown" event
+        document.addEventListener('keydown', function(event) {
+            // Check if the key pressed is the "Enter" key (key code 13)
+            if (event.keyCode === 13) {
+                // Call the updateChart() function
+                updateChart();
+            }
+        });
+
+
+        // Setup listener for Sound Toggle changes
+        const soundOptions = document.querySelectorAll('input[name="sound"]');
+        let selectedSoundOption = "on";  // Default state
+        soundOptions.forEach(option => {
+            option.addEventListener('change', function() {
+                selectedSoundOption = document.querySelector('input[name="sound"]:checked').value;
+                //console.log(selectedSoundOption);
+                if (selectedSoundOption == 'off') {setVolume(0);}
+                else {setVolume(volume);}
+            });
+        });
+
+        // Set up the Knob function
+        $(".knob").knob({
+            'change': function (v) { 
+                 updateChart(); 
+             },
+            'draw': function () {
+                // Keep this as the only styling in the knob draw method
+                this.i.text(Math.round(this.cv).toString()).css({
+                    'font-size': '20px',
+                    'position': 'absolute',
+                    'top': '20%',   //20% positions knob value in center
+                    'left': '110%',    //110% positions knob value in center
+                    'transform': 'translate(-50%, -50%)',
+                    'font-weight': 'bold'
+                });
+            }
+        });
+
+
+
+
+        // Get the dropdown and text box elements
+        const dropdown = document.getElementById('formulaDropdown');
+        const functionInput = document.getElementById('functionInput');
+        dropdown.selectedIndex = 0;
+        
+        // Add event listener for dropdown change
+        dropdown.addEventListener('change', function() {
+            
+            // Update input with the functionInput text from the selected formula
+            functionInput.value = dropdown.value;
+            
+            // Get the dropdown entry description and update the description text
+            const selectedOption = dropdown.options[dropdown.selectedIndex];
+
+            // Get the dropdown data for A, B, C variable presets
+            const optx = parseInt(selectedOption.getAttribute('data-optx'));
+            const opty = parseInt(selectedOption.getAttribute('data-opty'));
+            const optA = parseInt(selectedOption.getAttribute('data-A'));
+            const optB = parseInt(selectedOption.getAttribute('data-B'));
+            const optC = parseInt(selectedOption.getAttribute('data-C'));
+                       
+            // Set the preset values to the knobs using the dropdown preset values
+            $(".knob").eq(0).val(optx).trigger('change'); // x
+            $(".knob").eq(1).val(opty).trigger('change'); // y
+            $(".knob").eq(2).val(optA).trigger('change'); // A
+            $(".knob").eq(3).val(optB).trigger('change'); // B
+            $(".knob").eq(4).val(optC).trigger('change'); // C
+
+            updateChart();
+        });
+
+        let chart;
+        let gainNode;
+        let volume = .25;
+
+        //////////////// Begin Sound production           
+        // Setup sound library
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const sampleRate = audioCtx.sampleRate;
+        let duration = 4; // Play this many seconds
+        console.log("config duration=" + duration);
+        const currentVolume = document.getElementById('currentVolume');
+
+        // Create a GainNode to control volume
+        gainNode = audioCtx.createGain();
+        gainNode.connect(audioCtx.destination);
+
+        // Function to set the volume based on the slider value
+        function setVolume(volume) {
+            //console.log("AudioContext state: " + audioCtx.state);  // Is state Running or Suspended?
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);  // Set the new volume
+            currentVolume.textContent = `Volume: ${volume.toFixed(2)}`;  // Update the text next to the slider
+        }
+
+        // Set initial volume
+        setVolume(volume);
+        //console.log("Initial=" + volume);
+
+        
+        
+        
+        
+        
+        // Get a reference to the volume slider element
+        const volumeSlider = document.getElementById('volumeSlider');
+
+        // Add an event listener to update the volume when the slider changes
+        volumeSlider.addEventListener('input', function () {
+            volume = parseFloat(volumeSlider.value);
+            setVolume(volume);
+            //console.log("Listener volume="+volume);
+        });
+
+
+       
+
+
+
+
+        function updateChart() {  
+
+            //console.log("Update volume="+volume);
+            //console.log("AudioContext state: " + audioCtx.state);
+
+
+            // For data that is outside of -1 to +1 and needs modulation via an oscillator
+            function createmodulatedSound () {
+                // Create tone by calculating the interval duration for each frequency
+                duration = 4;
+                const intervalDuration = duration / x.length; // x2 to prolong the sound
+                console.log("modulated sound intervalDuration=" + intervalDuration + ", duration=" + duration + ",x.length=" + x.length);
+
+                // Schedule the oscillator frequencies based on y values
+                let currentTime = audioCtx.currentTime;
+
+                // Populate the y array using an oscillator set to the frequency matching each Y value
+                y.forEach(frequency => {
+                    let oscillator = audioCtx.createOscillator();
+                    oscillator.type = 'sine';
+                    if (Math.abs(frequency) > yRange) {
+                        return;
+                    }
+                    oscillator.frequency.setValueAtTime(frequency, currentTime); // set the frequency
+                    oscillator.connect(gainNode);
+                    oscillator.start(currentTime);
+                    oscillator.stop(currentTime + intervalDuration );
+                    currentTime += intervalDuration;
+                });
+
+                 // Estimate and report the pattern's frequency
+                const crossings = detectZeroCrossings(y);
+            }
+            
+            // Normalization function to pro-rate the values, from their min and max, to between 0 and 1.  
+            function normalize(values) {
+                let maxVal = Math.max(...values.map(Math.abs));
+                return values.map(v => v / maxVal);              
+            }
+
+            // For data that is already formatted between -1 and +1
+            function createarraySound() {
+                let normalizedY = normalize(y);   // !!!! consider changing to just y since its already normal
+
+                // Create an audio buffer
+                const audioBuffer = audioCtx.createBuffer(1, x.length, sampleRate);
+                const bufferSource = audioCtx.createBufferSource();
+                const channelData = audioBuffer.getChannelData(0);
+
+               // Get the duration to use in the sound animation
+                duration = x.length / 1000;
+                console.log('array sound length=' + x.length + ", array duration=" + duration );
+
+                // Insert the normalized data into the audio channel
+                for (let i = 0; i < normalizedY.length; i++) {
+                    channelData[i] = normalizedY[i];
+                }
+
+                // Start and stop the sound
+                bufferSource.buffer = audioBuffer;
+                bufferSource.connect(gainNode);
+                bufferSource.loop = true;
+                bufferSource.start();
+                bufferSource.stop(audioCtx.currentTime + 1);  // Stop after 10 seconds
+
+                // Estimate the pattern's frequency
+                const crossings = detectZeroCrossings(normalizedY);
+            }
+
+            // Detect Zero-Crossings, method to estimate frequency
+            function detectZeroCrossings(data) {
+                let crossings = [];
+                for(let i = 1; i < data.length; i++) {
+                    if(data[i] * data[i-1] < 0) { // Check if the product is negative, indicating a sign change
+                        crossings.push(i);
+                    }
+                }
+                // Determine Distance Between Zero-Crossings
+                const averageDistanceBetweenCrossings = (crossings[crossings.length-1] - crossings[0]) / (crossings.length - 1);
+
+                // Calculate and report the Frequency. Because there are two zero-crossings in one period of a wave, we divide by 2.
+                const Cfrequency = sampleRate / (2 * averageDistanceBetweenCrossings); 
+                document.getElementById('formulaDescription').innerHTML += '<br>Estimated Frequency: ' + Math.round(Cfrequency) + "hz";
+                return crossings;
+            }
+
+            //Get waveName from dropdown
+            const selectedOption = dropdown.options[dropdown.selectedIndex];
+            const description = selectedOption.getAttribute('data-desc');
+            const waveName = selectedOption.textContent; // This gets the selected Wave Name from the dropdown option    
+           
+            // Get the data from all the knobs
+            let xRange = parseInt($(".knob").eq(0).val());
+            let yRange = parseInt($(".knob").eq(1).val());
+            let A = parseInt($(".knob").eq(2).val());
+            let B = parseInt($(".knob").eq(3).val());
+            let C = parseInt($(".knob").eq(4).val());
+
+            // Get the input math text from the input text box
+            let functionString = document.getElementById('functionInput').value;
+
+            // Replace the A, B, C placeholders in the math text with knob values
+            functionString = functionString.replace(/A/g, A.toString());
+            functionString = functionString.replace(/B/g, B.toString());
+            functionString = functionString.replace(/C/g, C.toString());
+            
+            // Create the function that will be called when y is populated, then try the formula and notify user if it fails.
+            let func;
+            try {
+                func = new Function('x', 'return ' + functionString);
+                document.getElementById('formulaDescription').innerHTML = "Generating: " + waveName;
+                document.getElementById('formulaDescription').innerHTML += ', ' + description;
+            }
+            catch (error) {
+                // Update the UI with message to user about error
+                document.getElementById('formulaDescription').textContent = "!!!! An error occurred. Input values are not valid. Try changing a knob back to a previous value. Sometimes negative values are not allowed.";
+            }
+            
+            // Update the UI text box with the formula used
+            document.getElementById('formulaDescription').innerHTML += '<br>' + func;
+            
+            //create blank arrays
+            let x = [];
+            let y = [];
+
+            // Populate the array data
+            for (let i = 0; i < xRange; i++) {
+                x.push(i);
+                try {
+                    y.push(func(i));  // Use the func to create next y value
+                } 
+                catch (err) {
+                    y.push(0);
+                }
+            }
+
+
+            // Setup chart animation to sync with sound
+            let totalDuration = duration * 1000;  // convert to milliseconds
+            console.log('animation duration=' + duration + ', animation totalDuration=' + totalDuration);
+            let delayBetweenPoints = totalDuration / x.length;
+            const previousY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
+            const animation = {
+            x: {
+                type: 'number',
+                easing: 'linear',
+                duration: delayBetweenPoints,
+                from: NaN, // the point is initially skipped
+                delay(ctx) {
+                if (ctx.type !== 'data' || ctx.xStarted) {
+                    return 0;
+                }
+                ctx.xStarted = true;
+                return ctx.index * delayBetweenPoints;
+                }
+            },
+            y: {
+                type: 'number',
+                easing: 'linear',
+                duration: delayBetweenPoints,
+                from: previousY,
+                delay(ctx) {
+                if (ctx.type !== 'data' || ctx.yStarted) {
+                    return 0;
+                }
+                ctx.yStarted = true;
+                return ctx.index * delayBetweenPoints;
+                }
+            }
+            };
+
+
+            // Play the Sound
+            // Decide which method to use: Is the data in the math array playable (e.g. sinewaves alternating between 0 and 1) or does it need a modulated carrier signal?
+            let maxVal = Math.max(...y.map(Math.abs));
+
+            if (selectedSoundOption === 'on') {
+                if (maxVal > 1) {
+                    //console.log("creatingmodulatedsound");
+                    document.getElementById('formulaDescription').innerHTML += '<br>Sound is based on an Oscilator set to the numerical values given between 0 and 10,000hz. ';
+                    createmodulatedSound ();
+                }
+                else {
+                    //console.log("creatingarraysound");
+                    document.getElementById('formulaDescription').innerHTML += '<br>Sound is based on actual -1 to +1 values given.';
+                    createarraySound();
+                }
+            }
+
+            //Delete any existing chart from memory
+            if(chart) {
+                chart.destroy();
+            }
+
+
+            
+            //Create new chart
+            chart = new Chart(document.getElementById('chartCanvas').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: x,
+                    datasets: [{
+                        label: '',
+                        data: y,
+                        borderColor: 'green',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    animation,
+                    interaction: {
+                        intersect: false
+                    },                  
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Horizontal X Axis'
+                            },
+                            min: -xRange,
+                            max: xRange
+
+                        },                      
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Vertical Y Axis'
+                            },
+                            min: -yRange,
+                            max: yRange
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: waveName + ':   ' + functionString
+                        },
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            //console.log(chart);
+
+        }   
+
+        let resizeTimer;
+
+        // Add an event listener for when user resizes the window to update the chart size
+        window.addEventListener('resize', function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                updateChart();
+            }, 1000); // Debounce delay is needed so the updateChart does not run-away, if refreshed too fast.
+        });
+
+
+        updateChart();
+
+        // Triger the dropdown to change and use the selected option
+        document.getElementById('formulaDropdown').dispatchEvent(new Event('change'));
+    </script>
+
+</body>
+
+</html>
